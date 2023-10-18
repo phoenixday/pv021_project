@@ -1,4 +1,4 @@
-485739 Alina Tsykynovska
+485739 Alina Tsykynovska and ...
 ## PV021 project -- Deep Learning from Scratch
 
 ### DEADLINE
