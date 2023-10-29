@@ -5,38 +5,38 @@
 #ifndef PV021_PROJECT_LAYER_H
 #define PV021_PROJECT_LAYER_H
 
+#include <vector>
+
 class Neuron;
 
 class Layer {
 private:
     Layer* prevLayer;
-    Neuron* neurons;
-    int neuronsSize;
-    int* input;
-    int inputSize;
+    std::vector<Neuron> neurons;
+    std::vector<int> input;
+
 public:
     /**
      * A constructor for a hidden layer.
      * @param prevLayer
      * @param neurons a pointer to an array of neurons
-     * @param size size of a neurons array
      */
-    Layer(Layer *prevLayer, Neuron *neurons, int size);
+    Layer(Layer *prevLayer, std::vector<Neuron> neurons);
 
     /**
      * A constructor for an input layer.
      * @param input a pointer to an input array
      * @param inputSize
      */
-    Layer(int *input, int inputSize);
+    explicit Layer(std::vector<int> input);
 
     /**
      *
      * @return nullptr for an input layer
      */
-    Neuron *getNeurons() const;
+    std::vector<Neuron> getNeurons() const;
 
-    void setNeurons(Neuron *neurons);
+    void setNeurons(std::vector<Neuron> newNeurons);
 
     /**
      *
@@ -44,23 +44,21 @@ public:
      */
     Layer *getPrevLayer() const;
 
-    void setPrevLayer(Layer *prevLayer);
-
-    int getNeuronsSize() const;
-
-    void setNeuronsSize(int size);
+    void setPrevLayer(Layer *newPrevLayer);
 
     /**
      *
-     * @return nullptr for a hidden layer
+     * @return null for a hidden layer
      */
-    int *getInput() const;
+    std::vector<int> getInput() const;
 
-    void setInput(int *input);
+    void setInput(std::vector<int> newInput);
 
-    int getInputSize() const;
-
-    void setInputSize(int inputSize);
+    /**
+     * makes sense only for an output layer
+     * @return output of the one and only neuron
+     */
+    int getOutput();
 
     virtual ~Layer();
 };

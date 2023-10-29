@@ -3,32 +3,34 @@
 //
 
 #include "Neuron.h"
+
+#include <utility>
 #include "Layer.h"
 
-Neuron::Neuron(int *weights, int bias) : weights(weights), bias(bias) {}
+Neuron::Neuron(std::vector<int> weights, int bias) : weights(std::move(weights)), bias(bias) {}
 
 Layer *Neuron::getLayer() const {
     return layer;
 }
 
-void Neuron::setLayer(Layer *layer) {
-    Neuron::layer = layer;
+void Neuron::setLayer(Layer *newLayer) {
+    Neuron::layer = newLayer;
 }
 
-int *Neuron::getWeights() const {
+std::vector<int> Neuron::getWeights() const {
     return weights;
 }
 
-void Neuron::setWeights(int *weights) {
-    Neuron::weights = weights;
+void Neuron::setWeights(std::vector<int> newWeights) {
+    Neuron::weights = std::move(newWeights);
 }
 
 int Neuron::getBias() const {
     return bias;
 }
 
-void Neuron::setBias(int bias) {
-    Neuron::bias = bias;
+void Neuron::setBias(int newBias) {
+    Neuron::bias = newBias;
 }
 
 int Neuron::getOutput() const {
@@ -38,14 +40,17 @@ int Neuron::getOutput() const {
 int Neuron::calculateSumWeights() {
     int sum = bias;
     Layer* prevLayer = layer->getPrevLayer();
-    if (prevLayer != nullptr) {
-        Neuron* neurons = prevLayer->getNeurons();
-        for(int i = 0; i < prevLayer->getNeuronsSize(); i++) {
+    std::vector<Neuron> neurons = prevLayer->getNeurons();
+    // if the previous layer is hidden
+    if (!neurons.empty()) {
+        for(int i = 0; i < neurons.size(); i++) {
             sum += neurons[i].getOutput() * weights[i];
         }
-    } else {
-        int* input = layer->getInput();
-        for(int i = 0; i < layer->getInputSize(); i++) {
+    }
+    // if the previous layer is an input layer
+    else {
+        std::vector<int> input = prevLayer->getInput();
+        for(int i = 0; i < input.size(); i++) {
             sum += input[i] * weights[i];
         }
     }
@@ -58,7 +63,5 @@ int Neuron::activate() {
 }
 
 Neuron::~Neuron() {
-    delete[] weights;
-    weights = nullptr;
     layer = nullptr;
 }

@@ -5,28 +5,30 @@
 #ifndef PV021_PROJECT_NEURON_H
 #define PV021_PROJECT_NEURON_H
 
+#include <vector>
+
 class Layer;
 
 class Neuron {
 private:
     Layer* layer;
-    int* weights;
+    std::vector<int> weights;
     int bias;
     int output;
 public:
-    Neuron(int *weights, int bias);
+    Neuron(std::vector<int> weights, int bias);
 
     Layer *getLayer() const;
 
-    void setLayer(Layer *layer);
+    void setLayer(Layer *newLayer);
 
-    int *getWeights() const;
+    std::vector<int> getWeights() const;
 
-    void setWeights(int *weights);
+    void setWeights(std::vector<int> newWeights);
 
     int getBias() const;
 
-    void setBias(int bias);
+    void setBias(int newBias);
 
     /**
      *

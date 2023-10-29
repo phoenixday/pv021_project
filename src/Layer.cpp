@@ -5,65 +5,47 @@
 #include "Neuron.h"
 #include "Layer.h"
 
-Layer::Layer(Layer *prevLayer, Neuron *neurons, int size) : prevLayer(prevLayer), neurons(neurons), neuronsSize(size) {
-    input = nullptr;
-    inputSize = 0;
+#include <utility>
 
-    for(int i = 0; i < neuronsSize; i++) {
-        neurons[i].setLayer(this);
+Layer::Layer(Layer *prevLayer, std::vector<Neuron> neurons) : prevLayer(prevLayer), neurons(std::move(neurons)) {
+    for(auto & neuron : this->neurons) {
+        neuron.setLayer(this);
+        neuron.activate();
     }
 }
 
-Layer::Layer(int *input, int inputSize) : input(input), inputSize(inputSize) {
+Layer::Layer(std::vector<int> input) : input(std::move(input)) {
     prevLayer = nullptr;
-    neurons = nullptr;
-    neuronsSize = 0;
 }
 
-Neuron *Layer::getNeurons() const {
+std::vector<Neuron> Layer::getNeurons() const {
     return neurons;
 }
 
-void Layer::setNeurons(Neuron *neurons) {
-    this->neurons = neurons;
+void Layer::setNeurons(std::vector<Neuron> newNeurons) {
+    Layer::neurons = std::move(newNeurons);
 }
 
 Layer *Layer::getPrevLayer() const {
     return prevLayer;
 }
 
-void Layer::setPrevLayer(Layer *prevLayer) {
-    this->prevLayer = prevLayer;
+void Layer::setPrevLayer(Layer *newPrevLayer) {
+    this->prevLayer = newPrevLayer;
 }
 
-int Layer::getNeuronsSize() const {
-    return neuronsSize;
-}
-
-void Layer::setNeuronsSize(int size) {
-    Layer::neuronsSize = size;
-}
-
-int *Layer::getInput() const {
+std::vector<int> Layer::getInput() const {
     return input;
 }
 
-void Layer::setInput(int *input) {
-    Layer::input = input;
+void Layer::setInput(std::vector<int> newInput) {
+    Layer::input = std::move(newInput);
 }
 
-int Layer::getInputSize() const {
-    return inputSize;
-}
-
-void Layer::setInputSize(int inputSize) {
-    Layer::inputSize = inputSize;
+int Layer::getOutput() {
+    return neurons[0].getOutput();
 }
 
 Layer::~Layer() {
-    delete[] neurons;
-    neurons = nullptr;
-    delete[] input;
-    input = nullptr;
     prevLayer = nullptr;
 }
