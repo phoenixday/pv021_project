@@ -13,13 +13,9 @@ add_executable(pv021_project
         evaluator/evaluate.py
         evaluator/README.md
         src/main.cpp
-        src/Neuron.cpp
-        src/Neuron.h
         src/README.md
         example_test_predictions.csv
         network
         README.md
         run.sh
-        src/Layer.h
-        src/Layer.cpp
 )
