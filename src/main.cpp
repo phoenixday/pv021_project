@@ -1,10 +1,10 @@
-#include <iostream>
+#include <iostream> // allowed
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <cmath>
-#include <algorithm>
-#include <random>
+#include <algorithm> // allowed
+#include <random> // allowed
 
 using namespace std;
 
