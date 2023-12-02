@@ -1,3 +1,6 @@
+/.idea
+/.vscode
+.DS_Store
 /cmake-build-debug/
 /data/
 /network
