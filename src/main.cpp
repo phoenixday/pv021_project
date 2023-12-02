@@ -155,21 +155,27 @@ int main() {
     // Initialize weights and biases
     random_device rd;
     mt19937 gen(42);
-    uniform_real_distribution<> dis(-0.1, 0.1);
 
+    // He initialization for each layer
+    normal_distribution<> dis_hidden1(0, sqrt(2.0 / INPUT_SIZE));
+    normal_distribution<> dis_hidden2(0, sqrt(2.0 / HIDDEN_SIZE1));
+    normal_distribution<> dis_output(0, sqrt(2.0 / HIDDEN_SIZE2));
+
+    // weights
     vector<double> hidden_weights1(INPUT_SIZE * HIDDEN_SIZE1);
-    vector<double> hidden_bias1(HIDDEN_SIZE1);
     vector<double> hidden_weights2(HIDDEN_SIZE1 * HIDDEN_SIZE2);
-    vector<double> hidden_bias2(HIDDEN_SIZE2);
     vector<double> output_weights(HIDDEN_SIZE2 * OUTPUT_SIZE);
-    vector<double> output_bias(OUTPUT_SIZE);
+    for (auto &w : hidden_weights1) w = dis_hidden1(gen);
+    for (auto &w : hidden_weights2) w = dis_hidden2(gen);
+    for (auto &w : output_weights) w = dis_output(gen);
 
-    for (auto &w : hidden_weights1) w = dis(gen);
-    for (auto &b : hidden_bias1) b = dis(gen);
-    for (auto &w : hidden_weights2) w = dis(gen);
-    for (auto &b : hidden_bias2) b = dis(gen);
-    for (auto &w : output_weights) w = dis(gen);
-    for (auto &b : output_bias) b = dis(gen);
+    // biases
+    vector<double> hidden_bias1(HIDDEN_SIZE1);
+    vector<double> hidden_bias2(HIDDEN_SIZE2);
+    vector<double> output_bias(OUTPUT_SIZE);
+    for (auto &b : hidden_bias1) b = dis_hidden1(gen);
+    for (auto &b : hidden_bias2) b = dis_hidden2(gen);
+    for (auto &b : output_bias) b = dis_output(gen);
 
     // Pre-allocate memory for hidden1 and output vectors
     vector<double> hidden1(HIDDEN_SIZE1);
