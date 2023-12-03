@@ -11,7 +11,9 @@ using namespace std;
 // Hyperparameters
 const int EPOCHS = 10;
 const int INPUT_SIZE = 784; // 28x28
-const int HIDDEN_SIZE = 256;
+const int HIDDEN_SIZE1 = 256;
+const int HIDDEN_SIZE2 = 128;
+const int HIDDEN_SIZE3 = 128;
 const int OUTPUT_SIZE = 10;
 const double LEARNING_RATE = 0.001;
 const double BETA1 = 0.9;
@@ -38,26 +40,37 @@ void softmax(vector<double> &x) {
     }
 }
 
-void forwardPass(const vector<double> &inputs, const vector<double> &hidden_weights,
-                 const vector<double> &hidden_bias, const vector<double> &output_weights,
-                 const vector<double> &output_bias, vector<double> &hidden, vector<double> &output) {
-    // Hidden layer
-    for (int h = 0; h < HIDDEN_SIZE; ++h) {
-        for (int j = 0; j < INPUT_SIZE; ++j) {
-            hidden[h] += inputs[j] * hidden_weights[h * inputs.size() + j];
+void passHidden(vector<double> &prev_layer, vector<double> &layer,
+                const vector<double> &weights, const vector<double> &bias) {
+    for (int i = 0; i < layer.size(); ++i) {
+        for (int j = 0; j < prev_layer.size(); ++j) {
+            layer[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
         }
-        hidden[h] += hidden_bias[h];
-        hidden[h] = relu(hidden[h]);
+        layer[i] += bias[i];
+        layer[i] = relu(layer[i]);
     }
+}
 
-    // Output layer
-    for (int o = 0; o < OUTPUT_SIZE; ++o) {
-        for (int h = 0; h < HIDDEN_SIZE; ++h) {
-            output[o] += hidden[h] * output_weights[o * hidden.size() + h];
+void passOutput(vector<double> &prev_layer, vector<double> &output,
+                const vector<double> &weights, const vector<double> &bias) {
+    for (int i = 0; i < OUTPUT_SIZE; ++i) {
+        for (int j = 0; j < prev_layer.size(); ++j) {
+            output[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
         }
-        output[o] += output_bias[o];
+        output[i] += bias[i];
     }
     softmax(output);
+}
+
+void backpropagationHidden(vector<double> &layer, vector<double> &d_layer, 
+                           vector<double> &d_next_layer, vector<double> next_layer_weights) {
+    for (int i = 0; i < d_layer.size(); ++i) {
+        double error = 0.0;
+        for (int j = 0; j < d_next_layer.size(); ++j) {
+            error += d_next_layer[j] * next_layer_weights[j * d_layer.size() + i];
+        }
+        d_layer[i] = error * reluDerivative(layer[i]); 
+    }
 }
 
 void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
@@ -133,90 +146,131 @@ int main() {
     // Initialize weights and biases
     random_device rd;
     mt19937 gen(42);
-    uniform_real_distribution<> dis(-0.1, 0.1);
 
-    vector<double> hidden_weights(INPUT_SIZE * HIDDEN_SIZE);
-    vector<double> output_weights(HIDDEN_SIZE * OUTPUT_SIZE);
-    vector<double> hidden_bias(HIDDEN_SIZE);
+    // He initialization for each layer
+    normal_distribution<> dis_hidden1(0, sqrt(2.0 / INPUT_SIZE));
+    normal_distribution<> dis_hidden2(0, sqrt(2.0 / HIDDEN_SIZE1));
+    normal_distribution<> dis_hidden3(0, sqrt(2.0 / HIDDEN_SIZE2));
+    normal_distribution<> dis_output(0, sqrt(2.0 / HIDDEN_SIZE3));
+
+    // weights
+    vector<double> hidden_weights1(INPUT_SIZE * HIDDEN_SIZE1);
+    vector<double> hidden_weights2(HIDDEN_SIZE1 * HIDDEN_SIZE2);
+    vector<double> hidden_weights3(HIDDEN_SIZE2 * HIDDEN_SIZE3);
+    vector<double> output_weights(HIDDEN_SIZE3 * OUTPUT_SIZE);
+    for (auto &w : hidden_weights1) w = dis_hidden1(gen);
+    for (auto &w : hidden_weights2) w = dis_hidden2(gen);
+    for (auto &w : hidden_weights3) w = dis_hidden3(gen);
+    for (auto &w : output_weights) w = dis_output(gen);
+
+    // biases
+    vector<double> hidden_bias1(HIDDEN_SIZE1);
+    vector<double> hidden_bias2(HIDDEN_SIZE2);
+    vector<double> hidden_bias3(HIDDEN_SIZE3);
     vector<double> output_bias(OUTPUT_SIZE);
-
-    for (auto &w : hidden_weights) w = dis(gen);
-    for (auto &w : output_weights) w = dis(gen);
-    for (auto &b : hidden_bias) b = dis(gen);
-    for (auto &b : output_bias) b = dis(gen);
+    for (auto &b : hidden_bias1) b = dis_hidden1(gen);
+    for (auto &b : hidden_bias2) b = dis_hidden2(gen);
+    for (auto &b : hidden_bias3) b = dis_hidden3(gen);
+    for (auto &b : output_bias) b = dis_output(gen);
 
     // Pre-allocate memory for hidden and output vectors
-    vector<double> hidden(HIDDEN_SIZE);
+    vector<double> hidden1(HIDDEN_SIZE1);
+    vector<double> hidden2(HIDDEN_SIZE2);
+    vector<double> hidden3(HIDDEN_SIZE2);
     vector<double> output(OUTPUT_SIZE);
 
-    // Initialize Adam parameters
-    vector<double> m_hidden_weights(INPUT_SIZE * HIDDEN_SIZE, 0.0);
-    vector<double> v_hidden_weights(INPUT_SIZE * HIDDEN_SIZE, 0.0);
-    vector<double> m_output_weights(HIDDEN_SIZE * OUTPUT_SIZE, 0.0);
-    vector<double> v_output_weights(HIDDEN_SIZE * OUTPUT_SIZE, 0.0);
+    // Initialize Adam weights
+    vector<double> m_hidden_weights1(INPUT_SIZE * HIDDEN_SIZE1, 0.0);
+    vector<double> v_hidden_weights1(INPUT_SIZE * HIDDEN_SIZE1, 0.0);
+    vector<double> m_hidden_weights2(HIDDEN_SIZE1 * HIDDEN_SIZE2, 0.0);
+    vector<double> v_hidden_weights2(HIDDEN_SIZE1 * HIDDEN_SIZE2, 0.0);
+    vector<double> m_hidden_weights3(HIDDEN_SIZE2 * HIDDEN_SIZE3, 0.0);
+    vector<double> v_hidden_weights3(HIDDEN_SIZE2 * HIDDEN_SIZE3, 0.0);
+    vector<double> m_output_weights(HIDDEN_SIZE2 * OUTPUT_SIZE, 0.0);
+    vector<double> v_output_weights(HIDDEN_SIZE2 * OUTPUT_SIZE, 0.0);
 
     vector<int> train_predictions;
 
+    // Prepare indices for shuffling
+    vector<int> indices(train_vectors.size());
+    iota(indices.begin(), indices.end(), 0);
+
     // Training
     for (int epoch = 1; epoch <= EPOCHS; ++epoch) {
-        for (size_t i = 0; i < training_size; ++i) {
-            // Reset values to zero for reuse
-            fill(hidden.begin(), hidden.end(), 0.0);
+        // Shuffle the training data and labels together
+        shuffle(indices.begin(), indices.end(), gen);
+        
+        for (size_t idx = 0; idx < training_size; ++idx) {
+            int i = indices[idx];
+
+            // Reset hidden and output layers
+            fill(hidden1.begin(), hidden1.end(), 0.0);
+            fill(hidden2.begin(), hidden2.end(), 0.0);
+            fill(hidden3.begin(), hidden3.end(), 0.0);
             fill(output.begin(), output.end(), 0.0);
 
             // Forward pass
-            vector<double> hidden(HIDDEN_SIZE, 0.0);
-            vector<double> output(OUTPUT_SIZE, 0.0);
-            forwardPass(train_vectors[i], hidden_weights, hidden_bias, output_weights, output_bias, hidden, output);
+            passHidden(train_vectors[i], hidden1, hidden_weights1, hidden_bias1);
+            passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2);
+            passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
+            passOutput(hidden3, output, output_weights, output_bias);
 
             // Write to train_predictions.csv
             int predicted_label = max_element(output.begin(), output.end()) - output.begin();
             if (epoch == EPOCHS - 1) train_predictions.push_back(predicted_label);
 
             // Compute the loss and error
-            vector<double> error(OUTPUT_SIZE, 0.0);
+            vector<double> error_output(OUTPUT_SIZE, 0.0);
             for (int o = 0; o < OUTPUT_SIZE; ++o) {
-                error[o] = (o == train_labels[i]) ? 1.0 - output[o] : 0.0 - output[o];
+                error_output[o] = (o == train_labels[i]) ? 1.0 - output[o] : 0.0 - output[o];
             }
 
             // Backpropagation
             vector<double> d_output(OUTPUT_SIZE, 0.0);
             for (int o = 0; o < OUTPUT_SIZE; ++o) {
-                d_output[o] = error[o]; // Since the derivative of softmax loss w.r.t its input is error[o] itself
+                d_output[o] = error_output[o]; 
             }
 
-            vector<double> d_hidden(HIDDEN_SIZE, 0.0);
-            for (int h = 0; h < HIDDEN_SIZE; ++h) {
-                double error = 0.0;
-                for (int o = 0; o < OUTPUT_SIZE; ++o) {
-                    error += d_output[o] * output_weights[o * HIDDEN_SIZE + h];
-                }
-                d_hidden[h] = error * reluDerivative(hidden[h]); // replace sigmoidDerivative with reluDerivative
-            }
+            vector<double> d_hidden3(HIDDEN_SIZE3, 0.0);
+            backpropagationHidden(hidden3, d_hidden3, d_output, output_weights);
 
-            // Update weights and biases with Adam optimization
-            updateWeightsWithAdam(hidden_weights, hidden_bias, d_hidden, train_vectors[i],
-                                  m_hidden_weights, v_hidden_weights, epoch);
+            vector<double> d_hidden2(HIDDEN_SIZE2, 0.0);
+            backpropagationHidden(hidden2, d_hidden2, d_hidden3, hidden_weights3);
 
-            updateWeightsWithAdam(output_weights, output_bias, d_output, hidden,
+            vector<double> d_hidden1(HIDDEN_SIZE1, 0.0);
+            backpropagationHidden(hidden1, d_hidden1, d_hidden2, hidden_weights2);
+
+            updateWeightsWithAdam(hidden_weights1, hidden_bias1, d_hidden1, train_vectors[i],
+                                m_hidden_weights1, v_hidden_weights1, epoch);
+
+            updateWeightsWithAdam(hidden_weights2, hidden_bias2, d_hidden2, hidden1,
+                                m_hidden_weights2, v_hidden_weights2, epoch);
+
+            updateWeightsWithAdam(hidden_weights3, hidden_bias3, d_hidden3, hidden2,
+                                m_hidden_weights3, v_hidden_weights3, epoch);
+
+            updateWeightsWithAdam(output_weights, output_bias, d_output, hidden3,
                                   m_output_weights, v_output_weights, epoch);
         }
 
         // Validation
         int correct_count = 0;
         for (size_t i = training_size; i < total_training; ++i) {
-            // Reset values to zero for reuse
-            fill(hidden.begin(), hidden.end(), 0.0);
+            // Reset hidden and output layers
+            fill(hidden1.begin(), hidden1.end(), 0.0);
+            fill(hidden2.begin(), hidden2.end(), 0.0);
+            fill(hidden3.begin(), hidden3.end(), 0.0);
             fill(output.begin(), output.end(), 0.0);
 
             // Forward pass
-            vector<double> hidden(HIDDEN_SIZE, 0.0);
-            vector<double> output(OUTPUT_SIZE, 0.0);
-            forwardPass(train_vectors[i], hidden_weights, hidden_bias, output_weights, output_bias, hidden, output);
-
+            passHidden(train_vectors[i], hidden1, hidden_weights1, hidden_bias1);
+            passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2);
+            passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
+            passOutput(hidden3, output, output_weights, output_bias);
+            
             // Write to train_predictions.csv
             int predicted_label = max_element(output.begin(), output.end()) - output.begin();
-            if (epoch == EPOCHS - 1) train_predictions.push_back(predicted_label);
+            if (epoch == EPOCHS) train_predictions.push_back(predicted_label);
             correct_count += (predicted_label == train_labels[i]) ? 1 : 0;
         }
         double accuracy = (double)correct_count / validation_size * 100;
@@ -227,10 +281,17 @@ int main() {
     int correct_count = 0;
     vector<int> test_predictions;
     for (size_t i = 0; i < test_vectors.size(); ++i) {
-        // Forward pass
-        vector<double> hidden(HIDDEN_SIZE, 0.0);
-        vector<double> output(OUTPUT_SIZE, 0.0);
-        forwardPass(test_vectors[i], hidden_weights, hidden_bias, output_weights, output_bias, hidden, output);
+        // Reset hidden and output layers
+        fill(hidden1.begin(), hidden1.end(), 0.0);
+        fill(hidden2.begin(), hidden2.end(), 0.0);
+        fill(hidden3.begin(), hidden3.end(), 0.0);
+        fill(output.begin(), output.end(), 0.0);
+
+        // Forward pass with test vectors
+        passHidden(test_vectors[i], hidden1, hidden_weights1, hidden_bias1);
+        passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2);
+        passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
+        passOutput(hidden3, output, output_weights, output_bias);
 
         // Write to test_predictions.csv
         int predicted_label = max_element(output.begin(), output.end()) - output.begin();
