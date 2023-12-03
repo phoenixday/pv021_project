@@ -143,7 +143,8 @@ void writePredictions(const std::string& filename, const std::vector<int>& data)
 int main() {
     cout << "HIDDEN_SIZE1: " << HIDDEN_SIZE1 
         << ", HIDDEN_SIZE2: " << HIDDEN_SIZE2 
-        << ", HIDDEN_SIZE3: " << HIDDEN_SIZE3 << endl;
+        << ", HIDDEN_SIZE3: " << HIDDEN_SIZE3
+        << ", LAMBDA: " << LAMBDA << endl;
 
     vector<vector<double>> train_vectors = readVectors("data/fashion_mnist_train_vectors.csv");
     vector<int> train_labels = readLabels("data/fashion_mnist_train_labels.csv");
