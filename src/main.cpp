@@ -8,7 +8,7 @@
 using namespace std;
 
 // Hyperparameters
-const int EPOCHS = 10;
+const int EPOCHS = 15;
 const int INPUT_SIZE = 784; // 28x28
 const int HIDDEN_SIZE1 = 128;
 const int HIDDEN_SIZE2 = 64;
