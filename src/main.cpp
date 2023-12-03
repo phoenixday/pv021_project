@@ -1,15 +1,14 @@
 #include <iostream> // allowed
-#include <fstream>
-#include <sstream>
+#include <fstream> // for reading/writing csv
+#include <sstream> // same
 #include <vector>
-#include <cmath>
 #include <algorithm> // allowed
 #include <random> // allowed
 
 using namespace std;
 
 // Hyperparameters
-const int EPOCHS = 10;
+const int EPOCHS = 8;
 const int INPUT_SIZE = 784; // 28x28
 const int HIDDEN_SIZE1 = 256;
 const int HIDDEN_SIZE2 = 128;
@@ -19,6 +18,7 @@ const double LEARNING_RATE = 0.001;
 const double BETA1 = 0.9;
 const double BETA2 = 0.999;
 const double EPSILON = 1e-8;
+const double LAMBDA = 1e-4;
 
 double relu(double x) {
     return max(0.0, x);
@@ -42,8 +42,8 @@ void softmax(vector<double> &x) {
 
 void passHidden(vector<double> &prev_layer, vector<double> &layer,
                 const vector<double> &weights, const vector<double> &bias) {
-    for (int i = 0; i < layer.size(); ++i) {
-        for (int j = 0; j < prev_layer.size(); ++j) {
+    for (long unsigned int i = 0; i < layer.size(); ++i) {
+        for (long unsigned int j = 0; j < prev_layer.size(); ++j) {
             layer[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
         }
         layer[i] += bias[i];
@@ -53,8 +53,8 @@ void passHidden(vector<double> &prev_layer, vector<double> &layer,
 
 void passOutput(vector<double> &prev_layer, vector<double> &output,
                 const vector<double> &weights, const vector<double> &bias) {
-    for (int i = 0; i < OUTPUT_SIZE; ++i) {
-        for (int j = 0; j < prev_layer.size(); ++j) {
+    for (long unsigned int i = 0; i < OUTPUT_SIZE; ++i) {
+        for (long unsigned int j = 0; j < prev_layer.size(); ++j) {
             output[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
         }
         output[i] += bias[i];
@@ -64,9 +64,9 @@ void passOutput(vector<double> &prev_layer, vector<double> &output,
 
 void backpropagationHidden(vector<double> &layer, vector<double> &d_layer, 
                            vector<double> &d_next_layer, vector<double> next_layer_weights) {
-    for (int i = 0; i < d_layer.size(); ++i) {
+    for (long unsigned int i = 0; i < d_layer.size(); ++i) {
         double error = 0.0;
-        for (int j = 0; j < d_next_layer.size(); ++j) {
+        for (long unsigned int j = 0; j < d_next_layer.size(); ++j) {
             error += d_next_layer[j] * next_layer_weights[j * d_layer.size() + i];
         }
         d_layer[i] = error * reluDerivative(layer[i]); 
@@ -86,7 +86,7 @@ void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
             v_weights[idx] = BETA2 * v_weights[idx] + (1.0 - BETA2) * pow(inputs[j] * gradients[h], 2);
             double m_corr = m_weights[idx] / (1.0 - pow(BETA1, epoch));
             double v_corr = v_weights[idx] / (1.0 - pow(BETA2, epoch));
-            weights[idx] += LEARNING_RATE * m_corr / (sqrt(v_corr) + EPSILON);
+            weights[idx] += LEARNING_RATE * (m_corr / (sqrt(v_corr) + EPSILON) + LAMBDA * weights[idx]);
         }
         bias[h] += LEARNING_RATE * gradients[h];
     }
@@ -200,7 +200,7 @@ int main() {
         // Shuffle the training data and labels together
         shuffle(indices.begin(), indices.end(), gen);
         
-        for (size_t idx = 0; idx < training_size; ++idx) {
+        for (int idx = 0; idx < training_size; ++idx) {
             int i = indices[idx];
 
             // Reset hidden and output layers
@@ -255,7 +255,7 @@ int main() {
 
         // Validation
         int correct_count = 0;
-        for (size_t i = training_size; i < total_training; ++i) {
+        for (int i = training_size; i < total_training; ++i) {
             // Reset hidden and output layers
             fill(hidden1.begin(), hidden1.end(), 0.0);
             fill(hidden2.begin(), hidden2.end(), 0.0);
