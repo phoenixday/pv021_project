@@ -8,7 +8,7 @@
 using namespace std;
 
 // Hyperparameters
-const int EPOCHS = 8;
+const int EPOCHS = 10;
 const int INPUT_SIZE = 784; // 28x28
 const int HIDDEN_SIZE1 = 256;
 const int HIDDEN_SIZE2 = 128;
@@ -63,7 +63,7 @@ void passOutput(vector<double> &prev_layer, vector<double> &output,
 }
 
 void backpropagationHidden(vector<double> &layer, vector<double> &d_layer, 
-                           vector<double> &d_next_layer, vector<double> next_layer_weights) {
+                           vector<double> &d_next_layer, vector<double> &next_layer_weights) {
     for (long unsigned int i = 0; i < d_layer.size(); ++i) {
         double error = 0.0;
         for (long unsigned int j = 0; j < d_next_layer.size(); ++j) {
@@ -74,7 +74,7 @@ void backpropagationHidden(vector<double> &layer, vector<double> &d_layer,
 }
 
 void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
-                           const vector<double> &gradients, const vector<double> &inputs,
+                           vector<double> &gradients, vector<double> &inputs,
                            vector<double> &m_weights, vector<double> &v_weights, int epoch) {
     int layerSize = bias.size();
     int inputSize = inputs.size();
