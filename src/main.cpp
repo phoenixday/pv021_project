@@ -92,7 +92,8 @@ void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
     }
 }
 
-vector<vector<double>> readCsv(const string &filename) {
+vector<vector<double>> readVectors(const string &filename) {
+    cout << "Reading vectors from " << filename << " ..." << endl;
     ifstream file(filename);
     string line;
     vector<vector<double>> data;
@@ -107,11 +108,14 @@ vector<vector<double>> readCsv(const string &filename) {
     }
     if (data.empty()) {
         cerr << filename << " is empty or could not be read." << endl;
+    } else {
+        cout << "Vectors read!" << endl;
     }
     return data;
 }
 
-vector<int> readSingleColumnCsv(const string &filename) {
+vector<int> readLabels(const string &filename) {
+    cout << "Reading labels from " << filename << " ..." << endl;
     ifstream file(filename);
     string line;
     vector<int> data;
@@ -120,23 +124,27 @@ vector<int> readSingleColumnCsv(const string &filename) {
     }
     if (data.empty()) {
         cerr << filename << " is empty or could not be read." << endl;
+    } else {
+        cout << "Labels read!" << endl;
     }
     return data;
 }
 
-void writeCsv(const std::string& filename, const std::vector<int>& data) {
+void writePredictions(const std::string& filename, const std::vector<int>& data) {
+    cout << "Writing predictions to " << filename << " ..." << endl;
     std::ofstream file(filename);
     for (int val : data) {
         file << val << std::endl;
     }
+    cout << "Predictions written!" << endl;
     file.close();
 }
 
 int main() {
-    vector<vector<double>> train_vectors = readCsv("data/fashion_mnist_train_vectors.csv");
-    vector<int> train_labels = readSingleColumnCsv("data/fashion_mnist_train_labels.csv");
-    vector<vector<double>> test_vectors = readCsv("data/fashion_mnist_test_vectors.csv");
-    vector<int> test_labels = readSingleColumnCsv("data/fashion_mnist_test_labels.csv");
+    vector<vector<double>> train_vectors = readVectors("data/fashion_mnist_train_vectors.csv");
+    vector<int> train_labels = readLabels("data/fashion_mnist_train_labels.csv");
+    vector<vector<double>> test_vectors = readVectors("data/fashion_mnist_test_vectors.csv");
+    vector<int> test_labels = readLabels("data/fashion_mnist_test_labels.csv");
 
     // Validation split (last 10% of training data)
     int total_training = train_vectors.size();
@@ -176,7 +184,7 @@ int main() {
     // Pre-allocate memory for hidden and output vectors
     vector<double> hidden1(HIDDEN_SIZE1);
     vector<double> hidden2(HIDDEN_SIZE2);
-    vector<double> hidden3(HIDDEN_SIZE2);
+    vector<double> hidden3(HIDDEN_SIZE3);
     vector<double> output(OUTPUT_SIZE);
 
     // Initialize Adam weights
@@ -301,8 +309,8 @@ int main() {
     double accuracy = (double)correct_count / test_vectors.size() * 100;
     cout << "Final Test Accuracy: " << accuracy << "%" << endl;
 
-    writeCsv("train_predictions.csv", train_predictions);
-    writeCsv("test_predictions.csv", test_predictions);
+    writePredictions("train_predictions.csv", train_predictions);
+    writePredictions("test_predictions.csv", test_predictions);
 
     return 0;
 }
