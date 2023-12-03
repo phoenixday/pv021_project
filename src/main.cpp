@@ -15,6 +15,7 @@ const int HIDDEN_SIZE1 = 256;
 const int HIDDEN_SIZE2 = 128;
 const int HIDDEN_SIZE3 = 128;
 const int OUTPUT_SIZE = 10;
+const double DROPOUT_RATE = 0.5;
 const double LEARNING_RATE = 0.001;
 const double BETA1 = 0.9;
 const double BETA2 = 0.999;
@@ -60,6 +61,15 @@ void passOutput(vector<double> &prev_layer, vector<double> &output,
         output[i] += bias[i];
     }
     softmax(output);
+}
+
+void applyDropout(vector<double>& layer, mt19937& gen) {
+    uniform_real_distribution<> dis(0.0, 1.0);
+    for (int i = 0; i < layer.size(); ++i) {
+        if (dis(gen) < DROPOUT_RATE) {
+            layer[i] = 0.0;
+        }
+    }
 }
 
 void backpropagationHidden(vector<double> &layer, vector<double> &d_layer, 
@@ -211,7 +221,9 @@ int main() {
 
             // Forward pass
             passHidden(train_vectors[i], hidden1, hidden_weights1, hidden_bias1);
+            applyDropout(hidden1, gen);
             passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2);
+            applyDropout(hidden2, gen);
             passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
             passOutput(hidden3, output, output_weights, output_bias);
 
