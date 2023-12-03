@@ -1,7 +1,7 @@
 #include <iostream> // allowed
-#include <fstream> // for reading/writing csv
-#include <sstream> // same
-#include <vector>
+#include <fstream> // for reading csv
+#include <sstream> // for writing csv
+#include <vector> // allowed
 #include <algorithm> // allowed
 #include <random> // allowed
 
@@ -14,6 +14,7 @@ const int HIDDEN_SIZE1 = 256;
 const int HIDDEN_SIZE2 = 128;
 const int HIDDEN_SIZE3 = 128;
 const int OUTPUT_SIZE = 10;
+const double DROPOUT_RATE = 0.15;
 const double LEARNING_RATE = 0.001;
 const double BETA1 = 0.9;
 const double BETA2 = 0.999;
@@ -41,7 +42,7 @@ void softmax(vector<double> &x) {
 }
 
 void passHidden(vector<double> &prev_layer, vector<double> &layer,
-                const vector<double> &weights, const vector<double> &bias) {
+                vector<double> &weights, vector<double> &bias) {
     for (long unsigned int i = 0; i < layer.size(); ++i) {
         for (long unsigned int j = 0; j < prev_layer.size(); ++j) {
             layer[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
@@ -52,7 +53,7 @@ void passHidden(vector<double> &prev_layer, vector<double> &layer,
 }
 
 void passOutput(vector<double> &prev_layer, vector<double> &output,
-                const vector<double> &weights, const vector<double> &bias) {
+                vector<double> &weights, vector<double> &bias) {
     for (long unsigned int i = 0; i < OUTPUT_SIZE; ++i) {
         for (long unsigned int j = 0; j < prev_layer.size(); ++j) {
             output[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
@@ -60,6 +61,15 @@ void passOutput(vector<double> &prev_layer, vector<double> &output,
         output[i] += bias[i];
     }
     softmax(output);
+}
+
+void applyDropout(vector<double>& layer, mt19937& gen) {
+    uniform_real_distribution<> dis(0.0, 1.0);
+    for (int i = 0; i < layer.size(); ++i) {
+        if (dis(gen) < DROPOUT_RATE) {
+            layer[i] = 0.0;
+        }
+    }
 }
 
 void backpropagationHidden(vector<double> &layer, vector<double> &d_layer, 
@@ -76,19 +86,16 @@ void backpropagationHidden(vector<double> &layer, vector<double> &d_layer,
 void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
                            vector<double> &gradients, vector<double> &inputs,
                            vector<double> &m_weights, vector<double> &v_weights, int epoch) {
-    int layerSize = bias.size();
-    int inputSize = inputs.size();
-
-    for (int h = 0; h < layerSize; ++h) {
-        for (int j = 0; j < inputSize; ++j) {
-            int idx = h * inputSize + j;
-            m_weights[idx] = BETA1 * m_weights[idx] + (1.0 - BETA1) * inputs[j] * gradients[h];
-            v_weights[idx] = BETA2 * v_weights[idx] + (1.0 - BETA2) * pow(inputs[j] * gradients[h], 2);
+    for (int i = 0; i < bias.size(); ++i) {
+        for (int j = 0; j < inputs.size(); ++j) {
+            int idx = i * inputs.size() + j;
+            m_weights[idx] = BETA1 * m_weights[idx] + (1.0 - BETA1) * inputs[j] * gradients[i];
+            v_weights[idx] = BETA2 * v_weights[idx] + (1.0 - BETA2) * pow(inputs[j] * gradients[i], 2);
             double m_corr = m_weights[idx] / (1.0 - pow(BETA1, epoch));
             double v_corr = v_weights[idx] / (1.0 - pow(BETA2, epoch));
             weights[idx] += LEARNING_RATE * (m_corr / (sqrt(v_corr) + EPSILON) + LAMBDA * weights[idx]);
         }
-        bias[h] += LEARNING_RATE * gradients[h];
+        bias[i] += LEARNING_RATE * gradients[i];
     }
 }
 
@@ -130,11 +137,11 @@ vector<int> readLabels(const string &filename) {
     return data;
 }
 
-void writePredictions(const std::string& filename, const std::vector<int>& data) {
+void writePredictions(const string &filename, const vector<int> &data) {
     cout << "Writing predictions to " << filename << " ..." << endl;
-    std::ofstream file(filename);
+    ofstream file(filename);
     for (int val : data) {
-        file << val << std::endl;
+        file << val << endl;
     }
     cout << "Predictions written!" << endl;
     file.close();
