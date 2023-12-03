@@ -288,6 +288,30 @@ int main() {
         }
         double accuracy = (double)correct_count / validation_size * 100;
         cout << "Epoch " << epoch << ", Accuracy: " << accuracy << "%" << endl;
+
+        // Testing
+        correct_count = 0;
+        vector<int> test_predictions;
+        for (int i = 0; i < test_vectors.size(); ++i) {
+            // Reset hidden and output layers
+            fill(hidden1.begin(), hidden1.end(), 0.0);
+            fill(hidden2.begin(), hidden2.end(), 0.0);
+            fill(hidden3.begin(), hidden3.end(), 0.0);
+            fill(output.begin(), output.end(), 0.0);
+
+            // Forward pass with test vectors
+            passHidden(test_vectors[i], hidden1, hidden_weights1, hidden_bias1);
+            passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2);
+            passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
+            passOutput(hidden3, output, output_weights, output_bias);
+
+            // Write to test_predictions.csv
+            int predicted_label = max_element(output.begin(), output.end()) - output.begin();
+            test_predictions.push_back(predicted_label);
+            correct_count += (predicted_label == test_labels[i]) ? 1 : 0;
+        }
+        accuracy = (double)correct_count / test_vectors.size() * 100;
+        cout << "Test Accuracy: " << accuracy << "%" << endl;
     }
 
     // Testing
