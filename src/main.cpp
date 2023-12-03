@@ -11,7 +11,7 @@ using namespace std;
 // Hyperparameters
 const int EPOCHS = 10;
 const int INPUT_SIZE = 784; // 28x28
-const int HIDDEN_SIZE1 = 256;
+const int HIDDEN_SIZE1 = 128;
 const int HIDDEN_SIZE2 = 128;
 const int HIDDEN_SIZE3 = 128;
 const int OUTPUT_SIZE = 10;
@@ -62,45 +62,33 @@ void passOutput(vector<double> &prev_layer, vector<double> &output,
     softmax(output);
 }
 
-void calculateGradients(vector<double> &prev_layer, vector<double> &d_prev_layer,
-                        vector<double> &d_layer, vector<double> &weights, 
-                        vector<double> &gradients) {
-    for (int i = 0; i < d_prev_layer.size(); ++i) {
+void backpropagationHidden(vector<double> &layer, vector<double> &d_layer, 
+                           vector<double> &d_next_layer, vector<double> next_layer_weights) {
+    for (int i = 0; i < d_layer.size(); ++i) {
         double error = 0.0;
-        for (int j = 0; j < d_layer.size(); ++j) {
-            error += d_layer[j] * weights[j * d_prev_layer.size() + i];
-            gradients[j * d_prev_layer.size() + i] = d_layer[j] * prev_layer[i];
+        for (int j = 0; j < d_next_layer.size(); ++j) {
+            error += d_next_layer[j] * next_layer_weights[j * d_layer.size() + i];
         }
-        d_prev_layer[i] = error * reluDerivative(prev_layer[i]);
+        d_layer[i] = error * reluDerivative(layer[i]); 
     }
 }
 
-void updateWeightsWithAdam(vector<double> &weights, vector<double> &biases,
-                           const vector<double> &gradient_weights, const vector<double> &gradient_biases,
-                           vector<double> &m_weights, vector<double> &v_weights,
-                           vector<double> &m_biases, vector<double> &v_biases,
-                           int epoch, int layer_size, int prev_layer_size) {
-    for (int i = 0; i < layer_size; ++i) {
-        // Update weights
-        for (int j = 0; j < prev_layer_size; ++j) {
-            int idx = i * prev_layer_size + j;
-            m_weights[idx] = BETA1 * m_weights[idx] + (1 - BETA1) * gradient_weights[idx];
-            v_weights[idx] = BETA2 * v_weights[idx] + (1 - BETA2) * gradient_weights[idx] * gradient_weights[idx];
+void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
+                           const vector<double> &gradients, const vector<double> &inputs,
+                           vector<double> &m_weights, vector<double> &v_weights, int epoch) {
+    int layerSize = bias.size();
+    int inputSize = inputs.size();
 
-            double m_hat = m_weights[idx] / (1 - pow(BETA1, epoch));
-            double v_hat = v_weights[idx] / (1 - pow(BETA2, epoch));
-
-            weights[idx] -= LEARNING_RATE * m_hat / (sqrt(v_hat) + EPSILON);
+    for (int h = 0; h < layerSize; ++h) {
+        for (int j = 0; j < inputSize; ++j) {
+            int idx = h * inputSize + j;
+            m_weights[idx] = BETA1 * m_weights[idx] + (1.0 - BETA1) * inputs[j] * gradients[h];
+            v_weights[idx] = BETA2 * v_weights[idx] + (1.0 - BETA2) * pow(inputs[j] * gradients[h], 2);
+            double m_corr = m_weights[idx] / (1.0 - pow(BETA1, epoch));
+            double v_corr = v_weights[idx] / (1.0 - pow(BETA2, epoch));
+            weights[idx] += LEARNING_RATE * m_corr / (sqrt(v_corr) + EPSILON);
         }
-
-        // Update biases
-        m_biases[i] = BETA1 * m_biases[i] + (1 - BETA1) * gradient_biases[i];
-        v_biases[i] = BETA2 * v_biases[i] + (1 - BETA2) * gradient_biases[i] * gradient_biases[i];
-
-        double m_hat_bias = m_biases[i] / (1 - pow(BETA1, epoch));
-        double v_hat_bias = v_biases[i] / (1 - pow(BETA2, epoch));
-
-        biases[i] -= LEARNING_RATE * m_hat_bias / (sqrt(v_hat_bias) + EPSILON);
+        bias[h] += LEARNING_RATE * gradients[h];
     }
 }
 
@@ -201,16 +189,6 @@ int main() {
     vector<double> m_output_weights(HIDDEN_SIZE2 * OUTPUT_SIZE, 0.0);
     vector<double> v_output_weights(HIDDEN_SIZE2 * OUTPUT_SIZE, 0.0);
 
-    // Initialize Adam biases
-    vector<double> m_hidden_biases1(HIDDEN_SIZE1, 0.0);
-    vector<double> v_hidden_biases1(HIDDEN_SIZE1, 0.0);
-    vector<double> m_hidden_biases2(HIDDEN_SIZE2, 0.0);
-    vector<double> v_hidden_biases2(HIDDEN_SIZE2, 0.0);
-    vector<double> m_hidden_biases3(HIDDEN_SIZE3, 0.0);
-    vector<double> v_hidden_biases3(HIDDEN_SIZE3, 0.0);
-    vector<double> m_output_biases(OUTPUT_SIZE, 0.0);
-    vector<double> v_output_biases(OUTPUT_SIZE, 0.0);
-
     vector<int> train_predictions;
 
     // Prepare indices for shuffling
@@ -253,44 +231,26 @@ int main() {
                 d_output[o] = error_output[o]; 
             }
 
-            // Backpropagation for hidden layer 3
             vector<double> d_hidden3(HIDDEN_SIZE3, 0.0);
-            vector<double> gradient_output_weights(OUTPUT_SIZE * HIDDEN_SIZE3, 0.0);
-            calculateGradients(hidden3, d_hidden3, d_output, output_weights, gradient_output_weights);
+            backpropagationHidden(hidden3, d_hidden3, d_output, output_weights);
 
-            // Backpropagation for hidden layer 2
             vector<double> d_hidden2(HIDDEN_SIZE2, 0.0);
-            vector<double> gradient_hidden3_weights(HIDDEN_SIZE3 * HIDDEN_SIZE2, 0.0);
-            calculateGradients(hidden2, d_hidden2, d_hidden3, hidden_weights3, gradient_hidden3_weights);
+            backpropagationHidden(hidden2, d_hidden2, d_hidden3, hidden_weights3);
 
-            // Backpropagation for hidden layer 1
             vector<double> d_hidden1(HIDDEN_SIZE1, 0.0);
-            vector<double> gradient_hidden2_weights(HIDDEN_SIZE2 * HIDDEN_SIZE1, 0.0);
-            calculateGradients(hidden1, d_hidden1, d_hidden2, hidden_weights2, gradient_hidden2_weights);
+            backpropagationHidden(hidden1, d_hidden1, d_hidden2, hidden_weights2);
 
-            // Backpropagation for input layer
-            vector<double> gradient_hidden1_weights(INPUT_SIZE * HIDDEN_SIZE1, 0.0);
-            for (int h = 0; h < HIDDEN_SIZE1; ++h) {
-                for (int j = 0; j < INPUT_SIZE; ++j) {
-                    gradient_hidden1_weights[h * INPUT_SIZE + j] = d_hidden1[h] * train_vectors[i][j];
-                }
-            }
+            updateWeightsWithAdam(hidden_weights1, hidden_bias1, d_hidden1, train_vectors[i],
+                                m_hidden_weights1, v_hidden_weights1, epoch);
 
-            updateWeightsWithAdam(output_weights, output_bias, gradient_output_weights, d_output,
-                                m_output_weights, v_output_weights, m_output_biases, v_output_biases,
-                                epoch, OUTPUT_SIZE, HIDDEN_SIZE3);
+            updateWeightsWithAdam(hidden_weights2, hidden_bias2, d_hidden2, hidden1,
+                                m_hidden_weights2, v_hidden_weights2, epoch);
 
-            updateWeightsWithAdam(hidden_weights3, hidden_bias3, gradient_hidden3_weights, d_hidden3,
-                                m_hidden_weights3, v_hidden_weights3, m_hidden_biases3, v_hidden_biases3,
-                                epoch, HIDDEN_SIZE3, HIDDEN_SIZE2);
+            updateWeightsWithAdam(hidden_weights3, hidden_bias3, d_hidden3, hidden2,
+                                m_hidden_weights3, v_hidden_weights3, epoch);
 
-            updateWeightsWithAdam(hidden_weights2, hidden_bias2, gradient_hidden2_weights, d_hidden2,
-                                m_hidden_weights2, v_hidden_weights2, m_hidden_biases2, v_hidden_biases2,
-                                epoch, HIDDEN_SIZE2, HIDDEN_SIZE1);
-
-            updateWeightsWithAdam(hidden_weights1, hidden_bias1, gradient_hidden1_weights, d_hidden1,
-                                m_hidden_weights1, v_hidden_weights1, m_hidden_biases1, v_hidden_biases1,
-                                epoch, HIDDEN_SIZE1, INPUT_SIZE);
+            updateWeightsWithAdam(output_weights, output_bias, d_output, hidden3,
+                                  m_output_weights, v_output_weights, epoch);
         }
 
         // Validation
