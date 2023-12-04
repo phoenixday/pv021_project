@@ -6,8 +6,8 @@ using namespace std;
 pair<vector<double>, vector<double>> findMinMax(const vector<vector<double>> &data) {
     vector<double> minValues = data[0];
     vector<double> maxValues = data[0];
-    for (size_t i = 1; i < data.size(); ++i) {
-        for (int j = 0; j < data[0].size(); ++j) {
+    for (long unsigned int i = 1; i < data.size(); ++i) {
+        for (long unsigned int j = 0; j < data[0].size(); ++j) {
             if (data[i][j] < minValues[j]) {
                 minValues[j] = data[i][j];  
             }

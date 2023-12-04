@@ -1,4 +1,5 @@
 #include "csv_io.h"
+#include <string>
 #include <vector>
 #include <iostream>
 #include <fstream> // for reading csv

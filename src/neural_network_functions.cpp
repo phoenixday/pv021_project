@@ -2,6 +2,7 @@
 #include "hyperparameters.h"
 #include <functional>
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -44,8 +45,8 @@ void backpropagationHidden(const vector<double> &layer, vector<double> &d_layer,
 void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
                            const vector<double> &gradients, const vector<double> &inputs,
                            vector<double> &m_weights, vector<double> &v_weights, const int epoch) {
-    for (int i = 0; i < bias.size(); ++i) {
-        for (int j = 0; j < inputs.size(); ++j) {
+    for (long unsigned int i = 0; i < bias.size(); ++i) {
+        for (long unsigned int j = 0; j < inputs.size(); ++j) {
             int idx = i * inputs.size() + j;
             m_weights[idx] = BETA1 * m_weights[idx] + (1.0 - BETA1) * inputs[j] * gradients[i];
             v_weights[idx] = BETA2 * v_weights[idx] + (1.0 - BETA2) * pow(inputs[j] * gradients[i], 2);

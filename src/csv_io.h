@@ -2,6 +2,7 @@
 #define CSV_IO_H
 
 #include <vector>
+#include <string>
 
 using namespace std;
 
