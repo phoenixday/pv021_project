@@ -11,8 +11,7 @@ echo "    COMPILING    "
 echo "#################"
 
 ## dont forget to use comiler optimizations (e.g. -O3 or -Ofast)
-# /opt/homebrew/opt/llvm/bin/clang++ -Wall -std=c++17 -O3 -fopenmp src/*.cpp -o network
-g++ -Wall -std=c++17 -O3 -fopenmp src/*.cpp -o network
+g++ -Wall -std=c++17 -O3 src/*.cpp -o network
 ./network
 
 echo "#################"
