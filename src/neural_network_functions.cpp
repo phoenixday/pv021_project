@@ -1,3 +1,4 @@
+#include <omp.h>
 #include "neural_network_functions.h"
 #include "hyperparameters.h"
 #include <functional>
@@ -9,6 +10,7 @@ using namespace std;
 void passHidden(const vector<double> &prev_layer, vector<double> &layer,
                 const vector<double> &weights, const vector<double> &bias,
                 function<double(double)> activation) {
+    #pragma omp parallel for
     for (long unsigned int i = 0; i < layer.size(); ++i) {
         for (long unsigned int j = 0; j < prev_layer.size(); ++j) {
             layer[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
@@ -21,6 +23,7 @@ void passHidden(const vector<double> &prev_layer, vector<double> &layer,
 void passOutput(const vector<double> &prev_layer, vector<double> &output,
                 const vector<double> &weights, const vector<double> &bias,
                 function<void(vector<double> &x)> activation) {
+    #pragma omp parallel for
     for (long unsigned int i = 0; i < output.size(); ++i) {
         for (long unsigned int j = 0; j < prev_layer.size(); ++j) {
             output[i] += prev_layer[j] * weights[i * prev_layer.size() + j];
@@ -33,6 +36,7 @@ void passOutput(const vector<double> &prev_layer, vector<double> &output,
 void backpropagationHidden(const vector<double> &layer, vector<double> &d_layer, 
                            const vector<double> &d_next_layer, const vector<double> next_layer_weights,
                            function<double(double)> activationDerivative) {
+    #pragma omp parallel for
     for (long unsigned int i = 0; i < d_layer.size(); ++i) {
         double error = 0.0;
         for (long unsigned int j = 0; j < d_next_layer.size(); ++j) {
@@ -45,6 +49,7 @@ void backpropagationHidden(const vector<double> &layer, vector<double> &d_layer,
 void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
                            const vector<double> &gradients, const vector<double> &inputs,
                            vector<double> &m_weights, vector<double> &v_weights, const int epoch) {
+    #pragma omp parallel for
     for (long unsigned int i = 0; i < bias.size(); ++i) {
         for (long unsigned int j = 0; j < inputs.size(); ++j) {
             int idx = i * inputs.size() + j;

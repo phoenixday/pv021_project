@@ -11,8 +11,9 @@ echo "    COMPILING    "
 echo "#################"
 
 ## dont forget to use comiler optimizations (e.g. -O3 or -Ofast)
-g++ -Wall -std=c++17 -O3 src/*.cpp -o network
-./network
+## g++ -Wall -std=c++17 -O3 src/*.cpp -o network
+/opt/homebrew/opt/llvm/bin/clang++ -Wall -std=c++17 -O3 -fopenmp src/*.cpp -o network
+time ./network
 
 echo "#################"
 echo "     RUNNING     "
