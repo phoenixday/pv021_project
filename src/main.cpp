@@ -223,9 +223,9 @@ int main() {
             passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
             passOutput(hidden3, output, output_weights, output_bias);
 
-            // Write to train_predictions.csv
+            // Write 
             int predicted_label = max_element(output.begin(), output.end()) - output.begin();
-            if (epoch == EPOCHS - 1) train_predictions.push_back(predicted_label);
+            if (epoch == EPOCHS) train_predictions.push_back(predicted_label);
 
             // Compute the loss and error
             vector<double> error_output(OUTPUT_SIZE, 0.0);
@@ -276,7 +276,7 @@ int main() {
             passHidden(hidden2, hidden3, hidden_weights3, hidden_bias3);
             passOutput(hidden3, output, output_weights, output_bias);
             
-            // Write to train_predictions.csv
+            // Write
             int predicted_label = max_element(output.begin(), output.end()) - output.begin();
             if (epoch == EPOCHS) train_predictions.push_back(predicted_label);
             correct_count += (predicted_label == train_labels[i]) ? 1 : 0;
