@@ -65,7 +65,7 @@ void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
     vector<double> gradients_accumulate(weights.size(), 0.0);
     vector<double> bias_gradients_accumulate(bias.size(), 0.0);
 
-    // Accumulate gradients over batch
+    // gradients over batch
     for (size_t batch_idx = 0; batch_idx < batch_gradients.size(); ++batch_idx) {
         for (size_t i = 0; i < bias.size(); ++i) {
             bias_gradients_accumulate[i] += batch_gradients[batch_idx][i];
@@ -76,7 +76,7 @@ void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
         }
     }
 
-    // Update weights and biases using accumulated gradients
+    // update weights and biases
     #pragma omp parallel for
     for (size_t i = 0; i < bias.size(); ++i) {
         for (size_t j = 0; j < batch_inputs[0].size(); ++j) {

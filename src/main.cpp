@@ -68,10 +68,10 @@ int main() {
         shuffle(indices.begin(), indices.end(), gen);
         
         for (int idx = 0; idx < training_size; idx += BATCH_SIZE) {
-            // Determine the size of the current batch
+            // size of the current batch (can be smaller)
             int current_batch_size = min(BATCH_SIZE, training_size - idx);
 
-            // Create and initialize batch vectors
+            // batch vectors
             vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
             vector<vector<double>> batch_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
             vector<vector<double>> batch_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
@@ -80,17 +80,17 @@ int main() {
             vector<vector<double>> batch_d_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
             vector<vector<double>> batch_error_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
 
-            // Prepare the batch
+            // input batch
             for (long unsigned int b = 0; b < batch_input.size(); ++b) {
                 batch_input[b] = train_vectors[indices[idx + b]];
             }
 
-            // Forward pass for batch
+            // forward pass
             passHidden(batch_input, batch_hidden1, hidden_weights1, hidden_bias1, relu);
             passHidden(batch_hidden1, batch_hidden2, hidden_weights2, hidden_bias2, relu);
             passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
 
-            // Error computation and backpropagation for batch
+            // compute error and b
             for (long unsigned int b = 0; b < batch_input.size(); ++b) {
                 int i = indices[idx + b];
                 int true_label = train_labels[i];
@@ -102,7 +102,7 @@ int main() {
             backpropagationHidden(batch_hidden2, batch_d_hidden2, batch_error_output, output_weights, reluDerivative);
             backpropagationHidden(batch_hidden1, batch_d_hidden1, batch_d_hidden2, hidden_weights2, reluDerivative);
 
-            // Update weights using batch gradients
+            // update weights
             updateWeightsWithAdam(hidden_weights1, hidden_bias1, batch_d_hidden1, batch_input, 
                                   m_hidden_weights1, v_hidden_weights1, epoch);
             updateWeightsWithAdam(hidden_weights2, hidden_bias2, batch_d_hidden2, batch_hidden1, 
@@ -110,6 +110,7 @@ int main() {
             updateWeightsWithAdam(output_weights, output_bias, batch_error_output, batch_hidden2, 
                                   m_output_weights, v_output_weights, epoch);
 
+            // push label to predictions
             if (epoch == EPOCHS) {
                 for (long unsigned int b = 0; b < batch_input.size(); ++b) {
                     int i = indices[idx + b];
@@ -122,26 +123,26 @@ int main() {
         // VALIDATION
         int correct_count = 0;
         for (int i = training_size; i < total_training; i += BATCH_SIZE) {
-            // Determine the size of the current batch (it might be smaller than BATCH_SIZE at the end)
+            // size of the current batch (can be smaller)
             int current_batch_size = min(BATCH_SIZE, total_training - i);
 
-            // Create batch vectors
+            // batch vectors
             vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
             vector<vector<double>> batch_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
             vector<vector<double>> batch_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
             vector<vector<double>> batch_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
 
-            // Fill the batch input
+            // input batch
             for (int b = 0; b < current_batch_size; ++b) {
                 batch_input[b] = train_vectors[i + b];
             }
 
-            // Forward pass for the batch
+            // forward pass
             passHidden(batch_input, batch_hidden1, hidden_weights1, hidden_bias1, relu);
             passHidden(batch_hidden1, batch_hidden2, hidden_weights2, hidden_bias2, relu);
             passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
 
-            // Process predictions for the batch
+            // push label to predictions
             for (int b = 0; b < current_batch_size; ++b) {
                 int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
                 if (epoch == EPOCHS) train_predictions_map[i + b] = predicted_label;
@@ -155,26 +156,26 @@ int main() {
     int test_correct_count = 0;
     vector<int> test_predictions;
     for (long unsigned int i = 0; i < test_vectors.size(); i += BATCH_SIZE) {
-        // Determine the size of the current batch
+        // size of the current batch (can be smaller)
         int current_batch_size = min(BATCH_SIZE, static_cast<int>(test_vectors.size() - i));
 
-        // Create and initialize batch vectors
+        // batch vectors
         vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
         vector<vector<double>> batch_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
         vector<vector<double>> batch_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
         vector<vector<double>> batch_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
 
-        // Fill the batch input
+        //input batch
         for (int b = 0; b < current_batch_size; ++b) {
             batch_input[b] = test_vectors[i + b];
         }
 
-        // Forward pass for the batch
+        // forward pass
         passHidden(batch_input, batch_hidden1, hidden_weights1, hidden_bias1, relu);
         passHidden(batch_hidden1, batch_hidden2, hidden_weights2, hidden_bias2, relu);
         passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
 
-        // Process predictions for the batch
+        // push label to predictions
         for (int b = 0; b < current_batch_size; ++b) {
             int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
             test_predictions.push_back(predicted_label);
