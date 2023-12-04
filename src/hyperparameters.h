@@ -6,6 +6,7 @@ const int INPUT_SIZE = 784;
 const int HIDDEN_SIZE1 = 128;
 const int HIDDEN_SIZE2 = 64;
 const int OUTPUT_SIZE = 10;
+const int BATCH_SIZE = 32;
 const double LEARNING_RATE = 0.001;
 const double BETA1 = 0.9;
 const double BETA2 = 0.999;
