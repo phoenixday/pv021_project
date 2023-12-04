@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -121,6 +122,7 @@ int main() {
 
         // VALIDATION
         int correct_count = 0;
+        #pragma omp parallel for reduction(+:correct_count)
         for (int i = training_size; i < total_training; i += BATCH_SIZE) {
             // Determine the size of the current batch (it might be smaller than BATCH_SIZE at the end)
             int current_batch_size = min(BATCH_SIZE, total_training - i);
@@ -152,8 +154,9 @@ int main() {
     }
 
     // TESTING
-    int correct_count = 0;
+    int test_correct_count = 0;
     vector<int> test_predictions;
+    #pragma omp parallel for reduction(+:test_correct_count)
     for (int i = 0; i < test_vectors.size(); i += BATCH_SIZE) {
         // Determine the size of the current batch
         int current_batch_size = min(BATCH_SIZE, static_cast<int>(test_vectors.size()) - i);
@@ -178,10 +181,10 @@ int main() {
         for (int b = 0; b < current_batch_size; ++b) {
             int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
             test_predictions.push_back(predicted_label);
-            correct_count += (predicted_label == test_labels[i + b]) ? 1 : 0;
+            test_correct_count += (predicted_label == test_labels[i + b]) ? 1 : 0;
         }
     }
-    cout << "Accuracy on test data: " << (double)correct_count / test_vectors.size() << endl;
+    cout << "Accuracy on test data: " << (double)test_correct_count / test_vectors.size() << endl;
 
     // reorder train predictions back
     vector<int> train_predictions;

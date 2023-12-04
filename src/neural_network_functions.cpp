@@ -1,3 +1,4 @@
+#include <omp.h>
 #include "neural_network_functions.h"
 #include "hyperparameters.h"
 #include <functional>
@@ -10,6 +11,7 @@ void passHidden(const vector<vector<double>>& batch_prev,
                 vector<vector<double>>& batch,
                 const vector<double> &weights, const vector<double> &bias,
                 function<double(double)> activation) {
+    #pragma omp parallel for
     for (size_t batch_idx = 0; batch_idx < batch_prev.size(); ++batch_idx) {
         for (size_t i = 0; i < batch[0].size(); ++i) {
             batch[batch_idx][i] = 0.0;
@@ -26,6 +28,7 @@ void passOutput(const vector<vector<double>>& batch_prev,
                 vector<vector<double>>& batch,
                 const vector<double> &weights, const vector<double> &bias,
                 function<void(vector<double> &x)> activation) {
+    #pragma omp parallel for
     for (size_t batch_idx = 0; batch_idx < batch_prev.size(); ++batch_idx) {
         for (size_t i = 0; i < batch[0].size(); ++i) {
             batch[batch_idx][i] = 0.0;
@@ -43,6 +46,7 @@ void backpropagationHidden(const vector<vector<double>>& batch,
                            const vector<vector<double>>& batch_d_next, 
                            const vector<double> &next_layer_weights,
                            function<double(double)> activationDerivative) {
+    #pragma omp parallel for
     for (size_t batch_idx = 0; batch_idx < batch.size(); ++batch_idx) {
         for (size_t i = 0; i < batch_d[0].size(); ++i) {
             double error = 0.0;
@@ -73,6 +77,7 @@ void updateWeightsWithAdam(vector<double> &weights, vector<double> &bias,
     }
 
     // Update weights and biases using accumulated gradients
+    #pragma omp parallel for
     for (size_t i = 0; i < bias.size(); ++i) {
         for (size_t j = 0; j < batch_inputs[0].size(); ++j) {
             int idx = i * batch_inputs[0].size() + j;
