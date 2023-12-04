@@ -215,6 +215,8 @@ int main() {
     vector<int> indices(train_vectors.size());
     iota(indices.begin(), indices.end(), 0);
 
+    double max_accuracy = 0.0;
+
     // Training
     for (int epoch = 1; epoch <= EPOCHS; ++epoch) {
         // Shuffle the training data and labels together
@@ -318,6 +320,7 @@ int main() {
             correct_count += (predicted_label == test_labels[i]) ? 1 : 0;
         }
         accuracy = (double)correct_count / test_vectors.size() * 100;
+        max_accuracy = max(accuracy, max_accuracy);
         cout << "Test Accuracy: " << accuracy << "%" << endl;
     }
 
@@ -344,6 +347,7 @@ int main() {
     }
     double accuracy = (double)correct_count / test_vectors.size() * 100;
     cout << "Final Test Accuracy: " << accuracy << "%" << endl;
+    cout << "Max Test Accuracy: " << max_accuracy << "%" << endl;
 
     writePredictions("train_predictions.csv", train_predictions);
     writePredictions("test_predictions.csv", test_predictions);
