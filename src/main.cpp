@@ -8,10 +8,10 @@
 using namespace std;
 
 // Hyperparameters
-const int EPOCHS = 10;
+const int EPOCHS = 4;
 const int INPUT_SIZE = 784; // 28x28
-const int HIDDEN_SIZE1 = 256;
-const int HIDDEN_SIZE2 = 128;
+const int HIDDEN_SIZE1 = 128;
+const int HIDDEN_SIZE2 = 64;
 const int OUTPUT_SIZE = 10;
 const double LEARNING_RATE = 0.001;
 const double BETA1 = 0.9;
@@ -36,6 +36,28 @@ void softmax(vector<double> &x) {
     }
     for (auto &val : x) {
         val /= sum;
+    }
+}
+
+pair<vector<double>, vector<double>> findMinMax(const vector<vector<double>> &data) {
+    vector<double> minValues(data[0].size(), numeric_limits<double>::max());
+    vector<double> maxValues(data[0].size(), numeric_limits<double>::lowest());
+
+    for (const auto& row : data) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            minValues[i] = min(minValues[i], row[i]);
+            maxValues[i] = max(maxValues[i], row[i]);
+        }
+    }
+
+    return {minValues, maxValues};
+}
+
+void normalize(vector<vector<double>> &data, const vector<double> &minValues, const vector<double> &maxValues) {
+    for (auto& row : data) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            row[i] = (row[i] - minValues[i]) / (maxValues[i] - minValues[i]);
+        }
     }
 }
 
@@ -144,6 +166,12 @@ int main() {
     vector<int> train_labels = readLabels("data/fashion_mnist_train_labels.csv");
     vector<vector<double>> test_vectors = readVectors("data/fashion_mnist_test_vectors.csv");
     vector<int> test_labels = readLabels("data/fashion_mnist_test_labels.csv");
+
+    // Min-Max normalization
+    auto [minValues, maxValues] = findMinMax(train_vectors);
+    normalize(train_vectors, minValues, maxValues);
+    normalize(test_vectors, minValues, maxValues);
+    cout << "Normalization done!" << endl;
 
     // Validation split (last 10% of training data)
     int total_training = train_vectors.size();
