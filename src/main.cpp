@@ -67,92 +67,122 @@ int main() {
     for (int epoch = 1; epoch <= EPOCHS; ++epoch) {
         shuffle(indices.begin(), indices.end(), gen);
         
-        for (int idx = 0; idx < training_size; ++idx) {
-            int i = indices[idx];
-            // reset to 0
-            fill(hidden1.begin(), hidden1.end(), 0.0);
-            fill(hidden2.begin(), hidden2.end(), 0.0);
-            fill(output.begin(), output.end(), 0.0);
+        for (int idx = 0; idx < training_size; idx += BATCH_SIZE) {
+            // size of the current batch (can be smaller)
+            int current_batch_size = min(BATCH_SIZE, training_size - idx);
+
+            // batch vectors
+            vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
+            vector<vector<double>> batch_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
+            vector<vector<double>> batch_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
+            vector<vector<double>> batch_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
+            vector<vector<double>> batch_d_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
+            vector<vector<double>> batch_d_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
+            vector<vector<double>> batch_error_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
+
+            // input batch
+            for (long unsigned int b = 0; b < batch_input.size(); ++b) {
+                batch_input[b] = train_vectors[indices[idx + b]];
+            }
 
             // forward pass
-            passHidden(train_vectors[i], hidden1, hidden_weights1, hidden_bias1, relu);
-            passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2, relu);
-            passOutput(hidden2, output, output_weights, output_bias, softmax);
+            passHidden(batch_input, batch_hidden1, hidden_weights1, hidden_bias1, relu);
+            passHidden(batch_hidden1, batch_hidden2, hidden_weights2, hidden_bias2, relu);
+            passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
 
-            // add label
-            int predicted_label = max_element(output.begin(), output.end()) - output.begin();
-            if (epoch == EPOCHS) train_predictions_map[i] = predicted_label;
-
-            // compute error
-            vector<double> error_output(OUTPUT_SIZE, 0.0);
-            for (int o = 0; o < OUTPUT_SIZE; ++o) {
-                error_output[o] = (o == train_labels[i]) ? 1.0 - output[o] : 0.0 - output[o];
+            // compute error and b
+            for (long unsigned int b = 0; b < batch_input.size(); ++b) {
+                int i = indices[idx + b];
+                int true_label = train_labels[i];
+                for (int o = 0; o < OUTPUT_SIZE; ++o) {
+                    batch_error_output[b][o] = (o == true_label) ? 1.0 - batch_output[b][o] : -batch_output[b][o];
+                }
             }
 
-            // backpropagation
-            vector<double> d_output(OUTPUT_SIZE, 0.0);
-            for (int o = 0; o < OUTPUT_SIZE; ++o) {
-                d_output[o] = error_output[o]; 
-            }
-
-            vector<double> d_hidden2(HIDDEN_SIZE2, 0.0);
-            backpropagationHidden(hidden2, d_hidden2, d_output, output_weights, reluDerivative);
-
-            vector<double> d_hidden1(HIDDEN_SIZE1, 0.0);
-            backpropagationHidden(hidden1, d_hidden1, d_hidden2, hidden_weights2, reluDerivative);
+            backpropagationHidden(batch_hidden2, batch_d_hidden2, batch_error_output, output_weights, reluDerivative);
+            backpropagationHidden(batch_hidden1, batch_d_hidden1, batch_d_hidden2, hidden_weights2, reluDerivative);
 
             // update weights
-            updateWeightsWithAdam(hidden_weights1, hidden_bias1, d_hidden1, train_vectors[i],
-                                m_hidden_weights1, v_hidden_weights1, epoch);
-
-            updateWeightsWithAdam(hidden_weights2, hidden_bias2, d_hidden2, hidden1,
-                                m_hidden_weights2, v_hidden_weights2, epoch);
-
-            updateWeightsWithAdam(output_weights, output_bias, d_output, hidden2,
+            updateWeightsWithAdam(hidden_weights1, hidden_bias1, batch_d_hidden1, batch_input, 
+                                  m_hidden_weights1, v_hidden_weights1, epoch);
+            updateWeightsWithAdam(hidden_weights2, hidden_bias2, batch_d_hidden2, batch_hidden1, 
+                                  m_hidden_weights2, v_hidden_weights2, epoch);
+            updateWeightsWithAdam(output_weights, output_bias, batch_error_output, batch_hidden2, 
                                   m_output_weights, v_output_weights, epoch);
+
+            // push label to predictions
+            if (epoch == EPOCHS) {
+                for (long unsigned int b = 0; b < batch_input.size(); ++b) {
+                    int i = indices[idx + b];
+                    int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
+                    train_predictions_map[i] = predicted_label;
+                }
+            }
         }
 
         // VALIDATION
         int correct_count = 0;
-        for (int i = training_size; i < total_training; ++i) {
-            // reset to 0
-            fill(hidden1.begin(), hidden1.end(), 0.0);
-            fill(hidden2.begin(), hidden2.end(), 0.0);
-            fill(output.begin(), output.end(), 0.0);
+        for (int i = training_size; i < total_training; i += BATCH_SIZE) {
+            // size of the current batch (can be smaller)
+            int current_batch_size = min(BATCH_SIZE, total_training - i);
+
+            // batch vectors
+            vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
+            vector<vector<double>> batch_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
+            vector<vector<double>> batch_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
+            vector<vector<double>> batch_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
+
+            // input batch
+            for (int b = 0; b < current_batch_size; ++b) {
+                batch_input[b] = train_vectors[i + b];
+            }
 
             // forward pass
-            passHidden(train_vectors[i], hidden1, hidden_weights1, hidden_bias1, relu);
-            passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2, relu);
-            passOutput(hidden2, output, output_weights, output_bias, softmax);
-            
-            // add label
-            int predicted_label = max_element(output.begin(), output.end()) - output.begin();
-            if (epoch == EPOCHS) train_predictions_map[i] = predicted_label;
-            correct_count += (predicted_label == train_labels[i]) ? 1 : 0;
+            passHidden(batch_input, batch_hidden1, hidden_weights1, hidden_bias1, relu);
+            passHidden(batch_hidden1, batch_hidden2, hidden_weights2, hidden_bias2, relu);
+            passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
+
+            // push label to predictions
+            for (int b = 0; b < current_batch_size; ++b) {
+                int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
+                if (epoch == EPOCHS) train_predictions_map[i + b] = predicted_label;
+                correct_count += (predicted_label == train_labels[i + b]) ? 1 : 0;
+            }
         }
         cout << "Epoch: " << epoch << ", accuracy on validation data: " << (double)correct_count / validation_size << endl;
     }
 
     // TESTING
-    int correct_count = 0;
+    int test_correct_count = 0;
     vector<int> test_predictions;
-    for (size_t i = 0; i < test_vectors.size(); ++i) {
-        // reset to 0
-        fill(hidden1.begin(), hidden1.end(), 0.0);
-        fill(hidden2.begin(), hidden2.end(), 0.0);
-        fill(output.begin(), output.end(), 0.0);
+    for (long unsigned int i = 0; i < test_vectors.size(); i += BATCH_SIZE) {
+        // size of the current batch (can be smaller)
+        int current_batch_size = min(BATCH_SIZE, static_cast<int>(test_vectors.size() - i));
+
+        // batch vectors
+        vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
+        vector<vector<double>> batch_hidden1(current_batch_size, vector<double>(HIDDEN_SIZE1, 0.0));
+        vector<vector<double>> batch_hidden2(current_batch_size, vector<double>(HIDDEN_SIZE2, 0.0));
+        vector<vector<double>> batch_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
+
+        //input batch
+        for (int b = 0; b < current_batch_size; ++b) {
+            batch_input[b] = test_vectors[i + b];
+        }
 
         // forward pass
-        passHidden(test_vectors[i], hidden1, hidden_weights1, hidden_bias1, relu);
-        passHidden(hidden1, hidden2, hidden_weights2, hidden_bias2, relu);
-        passOutput(hidden2, output, output_weights, output_bias, softmax);
+        passHidden(batch_input, batch_hidden1, hidden_weights1, hidden_bias1, relu);
+        passHidden(batch_hidden1, batch_hidden2, hidden_weights2, hidden_bias2, relu);
+        passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
 
-        // add label
-        int predicted_label = max_element(output.begin(), output.end()) - output.begin();
-        test_predictions.push_back(predicted_label);
-        correct_count += (predicted_label == test_labels[i]) ? 1 : 0;
+        // push label to predictions
+        for (int b = 0; b < current_batch_size; ++b) {
+            int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
+            test_predictions.push_back(predicted_label);
+            test_correct_count += (predicted_label == test_labels[i + b]) ? 1 : 0;
+        }
     }
-    cout << "Accuracy on test data: " << (double)correct_count / test_vectors.size() << endl;
+    cout << "Accuracy on test data: " << (double)test_correct_count / test_vectors.size() << endl;
 
     // reorder train predictions back
     vector<int> train_predictions;
