@@ -81,7 +81,7 @@ int main() {
             vector<vector<double>> batch_error_output(current_batch_size, vector<double>(OUTPUT_SIZE, 0.0));
 
             // Prepare the batch
-            for (int b = 0; b < batch_input.size(); ++b) {
+            for (long unsigned int b = 0; b < batch_input.size(); ++b) {
                 batch_input[b] = train_vectors[indices[idx + b]];
             }
 
@@ -91,7 +91,7 @@ int main() {
             passOutput(batch_hidden2, batch_output, output_weights, output_bias, softmax);
 
             // Error computation and backpropagation for batch
-            for (int b = 0; b < batch_input.size(); ++b) {
+            for (long unsigned int b = 0; b < batch_input.size(); ++b) {
                 int i = indices[idx + b];
                 int true_label = train_labels[i];
                 for (int o = 0; o < OUTPUT_SIZE; ++o) {
@@ -111,7 +111,7 @@ int main() {
                                   m_output_weights, v_output_weights, epoch);
 
             if (epoch == EPOCHS) {
-                for (int b = 0; b < batch_input.size(); ++b) {
+                for (long unsigned int b = 0; b < batch_input.size(); ++b) {
                     int i = indices[idx + b];
                     int predicted_label = max_element(batch_output[b].begin(), batch_output[b].end()) - batch_output[b].begin();
                     train_predictions_map[i] = predicted_label;
@@ -154,9 +154,9 @@ int main() {
     // TESTING
     int test_correct_count = 0;
     vector<int> test_predictions;
-    for (int i = 0; i < test_vectors.size(); i += BATCH_SIZE) {
+    for (long unsigned int i = 0; i < test_vectors.size(); i += BATCH_SIZE) {
         // Determine the size of the current batch
-        int current_batch_size = min(BATCH_SIZE, static_cast<int>(test_vectors.size()) - i);
+        int current_batch_size = min(BATCH_SIZE, static_cast<int>(test_vectors.size() - i));
 
         // Create and initialize batch vectors
         vector<vector<double>> batch_input(current_batch_size, vector<double>(INPUT_SIZE, 0.0));
