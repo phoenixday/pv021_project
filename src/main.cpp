@@ -1,4 +1,3 @@
-#include <omp.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -122,7 +121,6 @@ int main() {
 
         // VALIDATION
         int correct_count = 0;
-        #pragma omp parallel for reduction(+:correct_count)
         for (int i = training_size; i < total_training; i += BATCH_SIZE) {
             // Determine the size of the current batch (it might be smaller than BATCH_SIZE at the end)
             int current_batch_size = min(BATCH_SIZE, total_training - i);
@@ -156,7 +154,6 @@ int main() {
     // TESTING
     int test_correct_count = 0;
     vector<int> test_predictions;
-    #pragma omp parallel for reduction(+:test_correct_count)
     for (int i = 0; i < test_vectors.size(); i += BATCH_SIZE) {
         // Determine the size of the current batch
         int current_batch_size = min(BATCH_SIZE, static_cast<int>(test_vectors.size()) - i);
